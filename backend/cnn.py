@@ -40,10 +40,7 @@ def _good_prob(images, bad, good):
 
 
 def score_images(exterior, engine):
-    """
-    exterior, engine: lists of PIL images.
-    Returns {target: score 0-100 or None}. None means no photos for that target.
-    """
+
     out = {}
     for t, (bad, good) in PROMPTS.items():
         imgs = engine if t == "engine_condition_score" else exterior
