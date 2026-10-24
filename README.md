@@ -30,15 +30,11 @@ carwise/
 
 ## Getting started
 
-You need Python 3.9 or newer.
-
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
-
-Generate the dataset and train the model:
 
 ```bash
 python -m backend.data_gen
@@ -50,8 +46,6 @@ Start the site:
 ```bash
 uvicorn backend.app:app --reload
 ```
-
-Then open http://127.0.0.1:8000 in your browser.
 
 The first time you upload a photo, CLIP downloads its weights (about 600 MB), so the first request can take a few minutes.
 
