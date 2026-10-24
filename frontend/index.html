@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CarWise</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>CarWise</h1>
+    <p>Enter the car details, add photos, and get a quality estimate.</p>
+
+    <form id="form">
+        <fieldset>
+            <legend>Vehicle details</legend>
+            <div id="fields"></div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Photos (optional)</legend>
+            <label>Exterior photos <input type="file" name="exterior" accept="image/*" multiple></label>
+            <label>Engine bay photos <input type="file" name="engine" accept="image/*" multiple></label>
+        </fieldset>
+
+        <button id="go" type="submit">Assess car</button>
+        <p id="status"></p>
+    </form>
+
+    <section id="result" hidden></section>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

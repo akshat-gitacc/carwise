@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+pandas
+numpy
+scikit-learn
+xgboost<3
+shap
+joblib
+pillow
+torch
+torchvision
+anthropic
+transformers
