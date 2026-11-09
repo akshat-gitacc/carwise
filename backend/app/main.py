@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from .explain import PriceExplainer
 
 import joblib
 import numpy as np
@@ -35,9 +36,17 @@ class CarInput(BaseModel):
     seats: int
 
 
+class Contribution(BaseModel):
+    feature: str
+    effect_pct: float
+    direction: str
+
+
 class PredictionResponse(BaseModel):
     predicted_price: float
     formatted_price: str
+    base_price: float
+    explanation: list[Contribution]
 
 
 app = FastAPI(title="CarWise API")
@@ -117,6 +126,13 @@ def predict(car: CarInput):
 
     return PredictionResponse(
         predicted_price=prediction,
-        formatted_price=format_price(prediction)
+        formatted_price=format_price(prediction),
+        base_price=round(explainer.base_price, 2),
+        explanation=explainer.explain(features),
     )
 
+
+pipeline = joblib.load(MODEL_PATH)
+preprocessor = pipeline.named_steps["preprocessor"]
+FEATURE_COLUMNS = list(preprocessor.feature_names_in_)
+explainer = PriceExplainer(pipeline)

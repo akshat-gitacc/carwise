@@ -51,6 +51,122 @@ FUEL_TYPES = ["Petrol", "Diesel", "CNG", "LPG", "Electric"]
 TRANSMISSION_TYPES = ["Manual", "Automatic"]
 SELLER_TYPES = ["Individual", "Dealer", "Trustmark Dealer"]
 
+FACTOR_MESSAGES = {
+    "Kilometres driven": (
+        "Lower usage than most cars of this type, which buyers value.",
+        "Higher usage than typical, which buyers usually pay less for.",
+    ),
+    "Kilometres driven (squared)": (
+        "Its overall usage is low, which supports a higher price.",
+        "Its overall usage is high, which pulls the price down.",
+    ),
+    "Yearly usage": (
+        "It has been driven gently each year, which helps its value.",
+        "It has been driven heavily each year, which lowers its value.",
+    ),
+    "Yearly usage (log)": (
+        "Its yearly usage is on the gentle side, which helps its value.",
+        "Its yearly usage is on the heavy side, which lowers its value.",
+    ),
+    "Vehicle age": (
+        "Its age works in its favour compared with similar cars.",
+        "Its age counts against it compared with similar cars.",
+    ),
+    "Vehicle age (squared)": (
+        "Its age has a limited effect on price here, which helps a little.",
+        "Its age has a growing effect on price, which lowers it.",
+    ),
+    "Mileage x age": (
+        "Its fuel efficiency holds up well for its age.",
+        "Its fuel efficiency has dropped more than expected for its age.",
+    ),
+    "Fuel mileage": (
+        "Good fuel efficiency makes it more appealing to buyers.",
+        "Lower fuel efficiency makes it less appealing to buyers.",
+    ),
+    "Mileage per power": (
+        "It gets good fuel economy for the power it produces.",
+        "It uses more fuel than expected for the power it produces.",
+    ),
+    "Engine size": (
+        "A larger engine than typical for this type of car, which adds value.",
+        "A smaller engine than typical for this type of car, which lowers value.",
+    ),
+    "Engine size (log)": (
+        "Its engine size adds to its value compared with similar cars.",
+        "Its engine size takes away from its value compared with similar cars.",
+    ),
+    "Max power": (
+        "Strong power output for a car like this, which adds to its price.",
+        "Modest power output for a car like this, which lowers its price.",
+    ),
+    "Max power (log)": (
+        "Its power output adds to its value compared with similar cars.",
+        "Its power output takes away from its value compared with similar cars.",
+    ),
+    "Power x engine": (
+        "Its power and engine together make it stand out, which helps its price.",
+        "Its power and engine together are modest, which lowers its price.",
+    ),
+    "Power per litre": (
+        "It gets a lot of power from each litre of engine, which buyers like.",
+        "It gets less power from each litre of engine than similar cars.",
+    ),
+    "Engine-to-power ratio": (
+        "Its engine and power are well matched, which supports its price.",
+        "Its engine and power are less well matched, which lowers its price.",
+    ),
+    "Seats": (
+        "Its seating capacity suits many buyers, which helps its price.",
+        "Its seating capacity is less in demand, which lowers its price.",
+    ),
+    "Seats x power": (
+        "Its seating and power combination is attractive, which helps its price.",
+        "Its seating and power combination is less attractive, which lowers its price.",
+    ),
+    "Luxury brand": (
+        "Being a premium brand raises its price.",
+        "Being a non-premium brand keeps its price lower.",
+    ),
+    "Automatic transmission": (
+        "An automatic gearbox is in demand and adds to its value.",
+        "A manual gearbox is more affordable and keeps its price lower.",
+    ),
+    "Transmission": (
+        "Its gearbox type is popular with buyers, which helps its price.",
+        "Its gearbox type is less popular, which lowers its price.",
+    ),
+    "Diesel engine": (
+        "A diesel engine is in demand for longer and more frequent driving.",
+        "A petrol or other engine is less in demand, which lowers its price.",
+    ),
+    "Luxury automatic": (
+        "Being a premium automatic gives it extra appeal.",
+        "The premium automatic combination does not add much value here.",
+    ),
+    "Brand": (
+        "The brand has a strong reputation in the used car market.",
+        "The brand has a weaker resale reputation, which lowers its price.",
+    ),
+    "Model": (
+        "This model is well regarded and holds its value.",
+        "This model holds its value less well than others of its kind.",
+    ),
+    "Fuel type": (
+        "Its fuel type is popular with buyers, which helps its price.",
+        "Its fuel type is less popular, which lowers its price.",
+    ),
+    "Seller type": (
+        "Buying from this type of seller adds confidence and value.",
+        "Buying from this type of seller carries a little less confidence.",
+    ),
+}
+
+DEFAULT_MESSAGES = (
+    "This factor helps the estimated price.",
+    "This factor lowers the estimated price.",
+)
+
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -147,6 +263,54 @@ st.markdown("""
         font-size: 0.85rem;
         color: var(--text-muted);
         margin-top: 0.25rem;
+    }
+
+    .why-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 1.5rem 0 0.5rem;
+    }
+
+    .why-intro {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .why-item {
+        padding: 0.85rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 0.6rem;
+    }
+
+    .why-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.3rem;
+    }
+
+    .why-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .why-score {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .why-msg {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        line-height: 1.5;
     }
 
     .caveat {
@@ -248,15 +412,39 @@ if predict_clicked:
                 unsafe_allow_html=True
             )
 
+            explanation = data.get("explanation", [])
+            base_price = data.get("base_price", 0)
+
+            items = []
+            for c in explanation:
+                pct = c["effect_pct"]
+                feature = c["feature"]
+                up_msg, down_msg = FACTOR_MESSAGES.get(feature, DEFAULT_MESSAGES)
+                helps = pct >= 0
+                message = up_msg if helps else down_msg
+                color = "#22c55e" if helps else "#ef4444"
+                sign = "+" if helps else ""
+                items.append(
+                    f'<div class="why-item">'
+                    f'<div class="why-head">'
+                    f'<span class="why-name">{feature}</span>'
+                    f'<span class="why-score" style="color:{color}">{sign}{pct:.1f}%</span>'
+                    f'</div>'
+                    f'<div class="why-msg">{message}</div>'
+                    f'</div>'
+                )
+
+            st.markdown(
+                '<div class="why-title">Why this price?</div>'
+                f'<div class="why-intro">Compared with a typical car in our data, '
+                f'which sells for around ₹{base_price:,.0f}, these are the main factors '
+                f'behind this estimate.</div>'
+                + "".join(items),
+                unsafe_allow_html=True,
+            )
+
         except requests.ConnectionError:
             st.error("Cannot connect to backend. Make sure the API is running: `uvicorn backend.app.main:app`")
         except Exception as e:
             st.error(f"Error: {e}")
 
-st.markdown(
-    '<div class="caveat">'
-    '⚠️ This is a prototype. Predictions are based on historical data patterns '
-    'and should not be used as the sole basis for pricing decisions.'
-    '</div>',
-    unsafe_allow_html=True,
-)
