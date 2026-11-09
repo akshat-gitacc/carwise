@@ -14,3 +14,7 @@ anthropic
 transformers
 streamlit
 requests
+matplotlib
+seaborn
+optuna
+catboost
