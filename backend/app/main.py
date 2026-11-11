@@ -1,6 +1,12 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from .explain import PriceExplainer
+from .advisor_router import router as advisor_router
+from .recommender_router import router as recommender_router
+from .favourites_router import router as favourites_router
+from .interactions_router import router as interactions_router
+from .chatbot_router import router as chatbot_router
 
 import joblib
 import numpy as np
@@ -9,11 +15,14 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-MODEL_PATH = BASE_DIR / "saved_models" / "xgboost_regression.joblib"
+MODEL_PATH = BASE_DIR / "models" / "saved_models" / "xgboost_regression.joblib"
+if not MODEL_PATH.exists():
+    MODEL_PATH = BASE_DIR / "saved_models" / "xgboost_regression.joblib"
 
 pipeline = joblib.load(MODEL_PATH)
 preprocessor = pipeline.named_steps["preprocessor"]
 FEATURE_COLUMNS = list(preprocessor.feature_names_in_)
+explainer = PriceExplainer(pipeline)
 
 LUXURY_BRANDS = [
     "Bmw", "Mercedes-Benz", "Audi", "Jaguar", "Land Rover",
@@ -49,7 +58,26 @@ class PredictionResponse(BaseModel):
     explanation: list[Contribution]
 
 
-app = FastAPI(title="CarWise API")
+app = FastAPI(
+    title="CarWise API",
+    description="CarWise unified backend hosting two services: Used Car Price Prediction and Indian Car Advisor.",
+    version="2.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount Routers
+app.include_router(advisor_router)
+app.include_router(recommender_router)
+app.include_router(favourites_router)
+app.include_router(interactions_router)
+app.include_router(chatbot_router)
 
 
 def build_features(data: dict) -> pd.DataFrame:
@@ -112,12 +140,29 @@ def format_price(price: float) -> str:
         return f"₹{price:,.0f}"
 
 
-@app.get("/health")
+@app.get("/", tags=["General"])
+def root():
+    return {
+        "status": "online",
+        "service": "CarWise AI/ML Automotive Intelligence Platform",
+        "version": "1.0.0",
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/health",
+            "predict": "/predict",
+            "advisor": "/api/advisor",
+            "recommendations": "/recommendations",
+            "favourites": "/favourites",
+        },
+    }
+
+
+@app.get("/health", tags=["General"])
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "services": ["price_prediction", "car_advisor", "hybrid_recommender", "favourites"]}
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict", response_model=PredictionResponse, tags=["Price Prediction"])
 def predict(car: CarInput):
     features = build_features(car.model_dump())
     prediction_log = pipeline.predict(features)[0]
@@ -130,9 +175,3 @@ def predict(car: CarInput):
         base_price=round(explainer.base_price, 2),
         explanation=explainer.explain(features),
     )
-
-
-pipeline = joblib.load(MODEL_PATH)
-preprocessor = pipeline.named_steps["preprocessor"]
-FEATURE_COLUMNS = list(preprocessor.feature_names_in_)
-explainer = PriceExplainer(pipeline)
